@@ -3,109 +3,120 @@ import { WORKOUT_TEMPLATES } from "@/lib/workouts";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import LogoutButton from "@/components/LogoutButton";
-import { Clock, ChevronLeft } from "lucide-react";
+import { Clock, ChevronLeft, CheckCircle2 } from "lucide-react";
 
-export default async function HomePage() {
+const ROTATION = ["upper_a", "lower_b", "full_body_c"];
+
+export default async function CalendarPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Last 5 sessions
-  const { data: sessions } = await supabase
+  // Last completed session
+  const { data: lastSession } = await supabase
     .from("workout_sessions")
-    .select("*")
-    .eq("user_id", user!.id)
+    .select("workout_id, started_at, completed_at")
+    .not("completed_at", "is", null)
     .order("started_at", { ascending: false })
-    .limit(5);
+    .limit(1)
+    .maybeSingle();
 
-  const beginnerWorkouts = WORKOUT_TEMPLATES.filter((w) => w.level === "beginner");
-  const intermediateWorkouts = WORKOUT_TEMPLATES.filter((w) => w.level === "intermediate");
+  // Check if worked out today
+  const todayStr = new Date().toLocaleDateString("sv"); // YYYY-MM-DD
+  const workedOutToday =
+    lastSession &&
+    new Date(lastSession.started_at).toLocaleDateString("sv") === todayStr;
+
+  // Determine recommended workout
+  const lastIdx = lastSession ? ROTATION.indexOf(lastSession.workout_id) : -1;
+  const nextIdx = (lastIdx + 1) % ROTATION.length;
+  const recommendedId = ROTATION[nextIdx];
+  const recommended = WORKOUT_TEMPLATES.find((w) => w.id === recommendedId) ?? WORKOUT_TEMPLATES[0];
+
+  const todayHe = new Date().toLocaleDateString("he-IL", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
   return (
     <div className="min-h-screen p-6 max-w-lg mx-auto">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold">כושר</h1>
-          <p className="text-muted-foreground text-sm">{user!.email}</p>
+          <h1 className="text-3xl font-bold">היום</h1>
+          <p className="text-muted-foreground text-sm">{todayHe}</p>
         </div>
         <LogoutButton />
       </div>
 
-      {/* Recent sessions */}
-      {sessions && sessions.length > 0 && (
+      {workedOutToday ? (
+        <Card className="mb-6 border-accent/40 bg-accent/10">
+          <div className="flex items-center gap-3">
+            <CheckCircle2 className="w-8 h-8 text-accent shrink-0" />
+            <div>
+              <p className="font-semibold text-lg">אימון הושלם היום! 💪</p>
+              <p className="text-muted-foreground text-sm">{recommended.nameHe}</p>
+            </div>
+          </div>
+        </Card>
+      ) : (
         <section className="mb-8">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-lg font-semibold">אימונים אחרונים</h2>
-            <Link href="/history" className="text-primary text-sm flex items-center gap-1">
-              כל ההיסטוריה <ChevronLeft className="w-4 h-4" />
-            </Link>
-          </div>
-          <div className="space-y-2">
-            {sessions.map((s) => (
-              <div key={s.id} className="flex items-center justify-between bg-card border border-border rounded-xl px-4 py-3">
-                <div>
-                  <p className="font-medium">{s.workout_name}</p>
-                  <p className="text-muted-foreground text-sm">
-                    {new Date(s.started_at).toLocaleDateString("he-IL")}
-                  </p>
-                </div>
-                {s.duration_seconds && (
-                  <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                    <Clock className="w-4 h-4" />
-                    {Math.round(s.duration_seconds / 60)} דק&apos;
-                  </div>
-                )}
-                {!s.completed_at && (
-                  <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">
-                    לא הושלם
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Workout selection */}
-      {beginnerWorkouts.length > 0 && (
-        <WorkoutSection title="מתחילים" workouts={beginnerWorkouts} />
-      )}
-      <WorkoutSection title="בינוני" workouts={intermediateWorkouts} />
-    </div>
-  );
-}
-
-function WorkoutSection({
-  title,
-  workouts,
-}: {
-  title: string;
-  workouts: typeof WORKOUT_TEMPLATES;
-}) {
-  return (
-    <section className="mb-8">
-      <h2 className="text-lg font-semibold mb-3">{title}</h2>
-      <div className="space-y-3">
-        {workouts.map((w) => (
-          <Link key={w.id} href={`/workout/${w.id}`}>
+          <h2 className="text-lg font-semibold mb-3">אימון מומלץ להיום</h2>
+          <Link href={`/workout/${recommended.id}`}>
             <Card className="hover:border-primary transition-colors cursor-pointer">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-lg">{w.nameHe}</h3>
-                  <p className="text-muted-foreground text-sm">{w.nameEn}</p>
-                  <p className="text-muted-foreground text-sm mt-1">{w.descriptionHe}</p>
+                  <h3 className="font-semibold text-xl">{recommended.nameHe}</h3>
+                  <p className="text-muted-foreground text-sm">{recommended.nameEn}</p>
+                  <p className="text-muted-foreground text-sm mt-1">{recommended.descriptionHe}</p>
+                  <p className="text-primary font-semibold text-sm mt-3">התחל אימון ←</p>
                 </div>
-                <div className="text-left shrink-0 ml-4">
-                  <div className="flex items-center gap-1 text-muted-foreground text-sm">
-                    <Clock className="w-4 h-4" />
-                    {w.durationMinutes} דק&apos;
-                  </div>
+                <div className="flex items-center gap-1 text-muted-foreground text-sm shrink-0 mr-4">
+                  <Clock className="w-4 h-4" />
+                  {recommended.durationMinutes} דק&apos;
                 </div>
               </div>
             </Card>
           </Link>
-        ))}
-      </div>
-    </section>
+        </section>
+      )}
+
+      {/* Rotation preview */}
+      <section>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold">תכנית שבועית</h2>
+          <Link href="/workouts" className="text-primary text-sm flex items-center gap-1">
+            כל האימונים <ChevronLeft className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="space-y-2">
+          {ROTATION.map((id, i) => {
+            const w = WORKOUT_TEMPLATES.find((t) => t.id === id);
+            if (!w) return null;
+            const isNext = id === recommendedId;
+            return (
+              <div
+                key={id}
+                className={`flex items-center justify-between rounded-xl px-4 py-3 border ${
+                  isNext ? "border-primary bg-primary/10" : "border-border bg-card"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-muted-foreground text-sm w-4">{i + 1}</span>
+                  <div>
+                    <p className="font-medium">{w.nameHe}</p>
+                    <p className="text-muted-foreground text-xs">{w.focus}</p>
+                  </div>
+                </div>
+                {isNext && (
+                  <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
+                    הבא
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+    </div>
   );
 }
