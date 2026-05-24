@@ -3,10 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useTimer } from "./useTimer";
-import { EXERCISES, youtubeSearchUrl } from "@/lib/exercises";
+import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES, flattenWorkoutSteps } from "@/lib/workouts";
 import { formatTime } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import ExerciseAnimation from "./ExerciseAnimation";
 import {
   CheckCircle2,
   Pause,
@@ -14,7 +15,6 @@ import {
   SkipForward,
   Timer,
   PlayCircle,
-  ExternalLink,
 } from "lucide-react";
 
 type Phase = "exercise" | "resting" | "complete";
@@ -274,22 +274,14 @@ export default function ActiveWorkout({
         </p>
 
         <div className="flex-1 flex flex-col justify-center gap-8">
-          {/* Exercise name + YouTube */}
+          {/* Exercise name + animation */}
           <div>
-            <div className="flex items-start gap-2">
+            <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-4xl font-bold">{currentExercise.nameHe}</h1>
                 <p className="text-muted-foreground text-xl mt-1">{currentExercise.nameEn}</p>
               </div>
-              <a
-                href={youtubeSearchUrl(currentExercise.youtubeQuery)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-1 p-2 rounded-lg text-red-500 hover:bg-muted transition-colors"
-                title="הדגמה ב-YouTube"
-              >
-                <ExternalLink className="w-6 h-6" />
-              </a>
+              <ExerciseAnimation exerciseId={currentExercise.id} />
             </div>
 
             {/* Last time / suggestion for reps exercises */}
