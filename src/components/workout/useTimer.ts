@@ -2,70 +2,77 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-function beep(frequency = 880, duration = 200, gain = 0.3) {
+export function beep(frequency = 880, duration = 200, gain = 0.3) {
   if (typeof window === "undefined") return;
   try {
     const ctx = new AudioContext();
     const osc = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    osc.connect(gainNode);
-    gainNode.connect(ctx.destination);
+    const vol = ctx.createGain();
+    osc.connect(vol);
+    vol.connect(ctx.destination);
     osc.frequency.value = frequency;
-    gainNode.gain.value = gain;
+    vol.gain.value = gain;
     osc.start();
     osc.stop(ctx.currentTime + duration / 1000);
     osc.onended = () => ctx.close();
   } catch {
-    // Audio not available
+    // audio not available
   }
 }
 
-export function useTimer(initialSeconds: number, onComplete?: () => void) {
-  const [seconds, setSeconds] = useState(initialSeconds);
+export function useTimer(onComplete?: () => void) {
+  const [seconds, setSeconds] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const secondsRef = useRef(0);          // source of truth for the interval
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
 
-  const clear = useCallback(() => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-    intervalRef.current = null;
+  const clearInterval_ = useCallback(() => {
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
   }, []);
 
-  const start = useCallback(() => {
-    beep(880, 150); // start beep
+  // start resets and begins a fresh countdown
+  const start = useCallback((duration: number) => {
+    clearInterval_();
+    secondsRef.current = duration;
+    setSeconds(duration);
     setRunning(true);
+    beep(880, 150);
+  }, [clearInterval_]);
+
+  const pause = useCallback(() => {
+    clearInterval_();
+    setRunning(false);
+  }, [clearInterval_]);
+
+  const resume = useCallback(() => {
+    if (secondsRef.current > 0) setRunning(true);
   }, []);
-
-  const pause = useCallback(() => setRunning(false), []);
-
-  const reset = useCallback(
-    (newSeconds?: number) => {
-      clear();
-      setRunning(false);
-      setSeconds(newSeconds ?? initialSeconds);
-    },
-    [clear, initialSeconds]
-  );
 
   useEffect(() => {
-    if (!running) {
-      clear();
-      return;
-    }
+    if (!running) return;
     intervalRef.current = setInterval(() => {
-      setSeconds((s) => {
-        if (s <= 1) {
-          beep(440, 400); // end beep (lower pitch, longer)
-          setTimeout(() => onCompleteRef.current?.(), 450);
-          return 0;
-        }
-        if (s === 4) beep(660, 100); // countdown beep at 3s left
-        return s - 1;
-      });
-    }, 1000);
-    return clear;
-  }, [running, clear]);
+      secondsRef.current -= 1;
+      setSeconds(secondsRef.current);
 
-  return { seconds, running, start, pause, reset };
+      if (secondsRef.current <= 0) {
+        // Stop the interval immediately — this is the key fix.
+        // Calling clearInterval here (via the ref) prevents any further ticks
+        // before the React state update propagates.
+        clearInterval_();
+        setRunning(false);
+        beep(440, 400);
+        setTimeout(() => onCompleteRef.current?.(), 450);
+      } else if (secondsRef.current === 3) {
+        beep(660, 100); // 3-second warning
+      }
+    }, 1000);
+    return clearInterval_;
+  }, [running, clearInterval_]);
+
+  return { seconds, running, start, pause, resume };
 }
