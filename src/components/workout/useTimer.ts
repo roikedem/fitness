@@ -24,6 +24,7 @@ export function useTimer(onComplete?: () => void) {
   const [seconds, setSeconds] = useState(0);
   const [running, setRunning] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const completeRef = useRef<ReturnType<typeof setTimeout> | null>(null); // deferred onComplete
   const secondsRef = useRef(0);          // source of truth for the interval
   const onCompleteRef = useRef(onComplete);
   onCompleteRef.current = onComplete;
@@ -35,19 +36,30 @@ export function useTimer(onComplete?: () => void) {
     }
   }, []);
 
+  // Cancel both the tick interval and any pending deferred onComplete.
+  // pause()/start() use this so a countdown that already hit 0 can still be
+  // stopped before its onComplete fires (prevents a double-advance).
+  const cancel = useCallback(() => {
+    clearInterval_();
+    if (completeRef.current) {
+      clearTimeout(completeRef.current);
+      completeRef.current = null;
+    }
+  }, [clearInterval_]);
+
   // start resets and begins a fresh countdown
   const start = useCallback((duration: number) => {
-    clearInterval_();
+    cancel();
     secondsRef.current = duration;
     setSeconds(duration);
     setRunning(true);
     beep(880, 150);
-  }, [clearInterval_]);
+  }, [cancel]);
 
   const pause = useCallback(() => {
-    clearInterval_();
+    cancel();
     setRunning(false);
-  }, [clearInterval_]);
+  }, [cancel]);
 
   const resume = useCallback(() => {
     if (secondsRef.current > 0) setRunning(true);
@@ -66,7 +78,11 @@ export function useTimer(onComplete?: () => void) {
         clearInterval_();
         setRunning(false);
         beep(440, 400);
-        setTimeout(() => onCompleteRef.current?.(), 450);
+        // Track the deferred fire so pause()/start() can cancel it.
+        completeRef.current = setTimeout(() => {
+          completeRef.current = null;
+          onCompleteRef.current?.();
+        }, 450);
       } else if (secondsRef.current === 3) {
         beep(660, 100); // 3-second warning
       }

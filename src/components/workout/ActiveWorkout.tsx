@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTimer } from "./useTimer";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES, flattenWorkoutSteps } from "@/lib/workouts";
-import { formatTime } from "@/lib/utils";
+import { formatTime, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import ExerciseAnimation from "./ExerciseAnimation";
 import {
@@ -15,6 +15,8 @@ import {
   SkipForward,
   Timer,
   PlayCircle,
+  SlidersHorizontal,
+  Zap,
 } from "lucide-react";
 
 type Phase = "exercise" | "resting" | "complete";
@@ -34,6 +36,12 @@ export default function ActiveWorkout({
   const [stepIndex, setStepIndex] = useState(0);
   const [phase, setPhase] = useState<Phase>("exercise");
   const [timerStarted, setTimerStarted] = useState(false);
+
+  // Auto mode: auto-start timed exercises, and auto-advance reps after a
+  // per-rep countdown (rest already auto-advances).
+  const [autoMode, setAutoMode] = useState(false);
+  // Seconds counted per rep before auto-advancing. Configurable (future UI).
+  const [secondsPerRep, setSecondsPerRep] = useState(1);
 
   // Rep confirmation dialog
   const [showRepDialog, setShowRepDialog] = useState(false);
@@ -119,6 +127,17 @@ export default function ActiveWorkout({
     }, [])
   );
 
+  // Advance a reps exercise, logging the suggested reps as performed.
+  const advanceReps = useCallback(() => {
+    if (currentStep) {
+      setLastPerformance((prev) => ({ ...prev, [currentStep.exerciseId]: suggestedReps }));
+    }
+    doAdvance(suggestedReps);
+  }, [currentStep, suggestedReps, doAdvance]);
+
+  // Auto mode countdown for reps exercises (≈ secondsPerRep × reps)
+  const repCountdown = useTimer(advanceReps);
+
   // Auto-start rest timer
   useEffect(() => {
     if (phase === "resting" && restDuration > 0) {
@@ -131,6 +150,40 @@ export default function ActiveWorkout({
   useEffect(() => {
     setTimerStarted(false);
   }, [stepIndex]);
+
+  // Load auto-mode preference + per-rep pacing
+  useEffect(() => {
+    if (localStorage.getItem("autoMode") === "1") setAutoMode(true);
+    const spr = Number(localStorage.getItem("secondsPerRep"));
+    if (spr > 0) setSecondsPerRep(spr);
+  }, []);
+
+  const toggleAutoMode = () => {
+    setAutoMode((v) => {
+      const next = !v;
+      localStorage.setItem("autoMode", next ? "1" : "0");
+      return next;
+    });
+  };
+
+  // Auto mode: automatically start the timer on timed exercises
+  useEffect(() => {
+    if (autoMode && phase === "exercise" && isTimed && !timerStarted && currentStep) {
+      setTimerStarted(true);
+      exerciseTimer.start(exerciseDuration);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode, phase, isTimed, timerStarted, stepIndex]);
+
+  // Auto mode: count down per-rep on reps exercises, then advance.
+  // Paused while the adjust dialog is open so a manual log isn't cut off.
+  useEffect(() => {
+    if (autoMode && phase === "exercise" && !isTimed && !showRepDialog && currentStep) {
+      repCountdown.start(Math.max(1, Math.round(suggestedReps * secondsPerRep)));
+    }
+    return () => repCountdown.pause();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode, phase, isTimed, showRepDialog, stepIndex, secondsPerRep]);
 
   // Init session + load last performance
   useEffect(() => {
@@ -179,10 +232,17 @@ export default function ActiveWorkout({
       exerciseTimer.pause();
       doAdvance(undefined, exerciseDuration);
     } else {
-      // Show rep confirmation dialog
-      setActualReps(suggestedReps);
-      setShowRepDialog(true);
+      // Direct advance — assume the suggested reps were performed.
+      // Use "Adjust" to log a different number.
+      repCountdown.pause();
+      advanceReps();
     }
+  };
+
+  const handleAdjust = () => {
+    repCountdown.pause();
+    setActualReps(suggestedReps);
+    setShowRepDialog(true);
   };
 
   const handleConfirmReps = () => {
@@ -269,9 +329,23 @@ export default function ActiveWorkout({
           />
         </div>
 
-        <p className="text-muted-foreground text-sm mb-4">
-          {currentStep.blockName} · סיבוב {currentStep.round}/{currentStep.totalRounds}
-        </p>
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <p className="text-muted-foreground text-sm">
+            {currentStep.blockName} · סיבוב {currentStep.round}/{currentStep.totalRounds}
+          </p>
+          <button
+            onClick={toggleAutoMode}
+            className={cn(
+              "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-full border transition-colors shrink-0",
+              autoMode
+                ? "bg-accent text-accent-foreground border-accent"
+                : "border-border text-muted-foreground"
+            )}
+          >
+            <Zap className="w-3.5 h-3.5" />
+            {autoMode ? "אוטומטי פעיל" : "אוטומטי כבוי"}
+          </button>
+        </div>
 
         <div className="flex-1 flex flex-col justify-center gap-8">
           {/* Exercise name + animation */}
@@ -305,14 +379,19 @@ export default function ActiveWorkout({
           {/* Reps or timer */}
           {isTimed ? (
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={timerStarted ? undefined : handleStartTimer}
+                disabled={timerStarted}
+                className="flex items-center gap-3 self-start disabled:cursor-default"
+              >
                 <Timer className="w-8 h-8 text-primary" />
                 <span className="text-7xl font-mono font-bold text-primary">
                   {timerStarted ? formatTime(exerciseTimer.seconds) : formatTime(exerciseDuration)}
                 </span>
-              </div>
+              </button>
               {!timerStarted ? (
-                <Button variant="accent" size="lg" className="self-start" onClick={handleStartTimer}>
+                <Button variant="accent" size="lg" className="w-full" onClick={handleStartTimer}>
                   <PlayCircle className="w-6 h-6 ml-2" />
                   התחל טיימר
                 </Button>
@@ -327,9 +406,16 @@ export default function ActiveWorkout({
               )}
             </div>
           ) : (
-            <div className="flex items-baseline gap-3">
-              <span className="text-8xl font-bold text-primary">{suggestedReps}</span>
-              <span className="text-2xl text-muted-foreground">חזרות</span>
+            <div className="flex flex-col gap-2">
+              <div className="flex items-baseline gap-3">
+                <span className="text-8xl font-bold text-primary">{suggestedReps}</span>
+                <span className="text-2xl text-muted-foreground">חזרות</span>
+              </div>
+              {autoMode && repCountdown.running && (
+                <p className="text-sm text-accent">
+                  הבא אוטומטי בעוד {repCountdown.seconds}s
+                </p>
+              )}
             </div>
           )}
 
@@ -350,6 +436,12 @@ export default function ActiveWorkout({
           {(phase === "exercise" && isTimed && timerStarted) && (
             <Button variant="outline" size="lg" onClick={handlePauseResume}>
               {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
+            </Button>
+          )}
+          {!isTimed && (
+            <Button variant="outline" size="lg" onClick={handleAdjust}>
+              <SlidersHorizontal className="w-5 h-5 ml-2" />
+              כוונן
             </Button>
           )}
           <Button size="xl" className="flex-1" onClick={handleNext}>
