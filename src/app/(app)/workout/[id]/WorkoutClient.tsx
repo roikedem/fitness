@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import ActiveWorkout from "@/components/workout/ActiveWorkout";
 import { WORKOUT_TEMPLATES } from "@/lib/workouts";
+import { EXERCISES } from "@/lib/exercises";
 import { Button } from "@/components/ui/button";
 import { Clock, Dumbbell, ChevronRight } from "lucide-react";
 
@@ -58,7 +59,7 @@ export default function WorkoutClient({ workoutId, userId }: { workoutId: string
             </div>
             <div className="space-y-1">
               {block.steps.map((step, j) => {
-                const ex = { pushups: "Push-ups", wide_pushups: "Wide Push-ups", diamond_pushups: "Diamond Push-ups", pike_pushups: "Pike Push-ups", decline_pushups: "Decline Push-ups", pullups: "Pull-ups", chinups: "Chin-ups", inverted_rows: "Inverted Rows", dips: "Dips", squats: "Squats", jump_squats: "Jump Squats", lunges: "Lunges", reverse_lunges: "Reverse Lunges", glute_bridges: "Glute Bridges", plank: "Plank", side_plank_left: "Side Plank (L)", side_plank_right: "Side Plank (R)", hollow_body: "Hollow Body Hold", leg_raises: "Leg Raises", mountain_climbers: "Mountain Climbers", burpees: "Burpees", superman: "Superman Hold" }[step.exerciseId] ?? step.exerciseId;
+                const ex = EXERCISES[step.exerciseId]?.nameEn ?? step.exerciseId;
                 return (
                   <p key={j} className="text-sm text-muted-foreground">
                     • {ex}{step.reps ? ` × ${step.reps}` : step.duration ? ` ${step.duration}s` : ""}

@@ -55,6 +55,24 @@ export const EXERCISES: Record<string, Exercise> = {
     muscleGroups: ["biceps", "back"],
     youtubeQuery: "chin ups underhand grip tutorial",
   },
+  band_pullups: {
+    id: "band_pullups", nameEn: "Band-Assisted Pull-ups", nameHe: "מתח בעזרת גומייה",
+    type: "reps", defaultReps: 8,
+    muscleGroups: ["back", "biceps"],
+    youtubeQuery: "band assisted pull ups tutorial",
+  },
+  negative_pullups: {
+    id: "negative_pullups", nameEn: "Negative Pull-ups", nameHe: "מתח שלילי – ירידות איטיות",
+    type: "reps", defaultReps: 4,
+    muscleGroups: ["back", "biceps"],
+    youtubeQuery: "negative pull ups eccentric tutorial",
+  },
+  trx_rows: {
+    id: "trx_rows", nameEn: "TRX Rows", nameHe: "משיכות TRX",
+    type: "reps", defaultReps: 12,
+    muscleGroups: ["back", "biceps"],
+    youtubeQuery: "trx inverted row tutorial",
+  },
   inverted_rows: {
     id: "inverted_rows", nameEn: "Inverted Rows", nameHe: "משיכות הפוכות",
     type: "reps", defaultReps: 12,
