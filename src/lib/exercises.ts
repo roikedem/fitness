@@ -13,6 +13,9 @@ export interface Exercise {
   // Per-side / asymmetric moves (e.g. lunges): target reps must be even so
   // both sides get equal work. The app rounds suggestions to the nearest even.
   perSide?: boolean;
+  // Auto-mode tempo: seconds counted per rep before auto-advancing. Slow
+  // strength moves (pull-ups, dips) want 2s/rep; most moves use the default 1.
+  secondsPerRep?: number;
 }
 
 export const EXERCISES: Record<string, Exercise> = {
@@ -48,25 +51,25 @@ export const EXERCISES: Record<string, Exercise> = {
   },
   pullups: {
     id: "pullups", nameEn: "Pull-ups", nameHe: "מתח",
-    type: "reps", defaultReps: 6,
+    type: "reps", defaultReps: 6, secondsPerRep: 2,
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "pull ups proper form beginners",
   },
   chinups: {
     id: "chinups", nameEn: "Chin-ups", nameHe: "מתח אנדרגריפ",
-    type: "reps", defaultReps: 6,
+    type: "reps", defaultReps: 6, secondsPerRep: 2,
     muscleGroups: ["biceps", "back"],
     youtubeQuery: "chin ups underhand grip tutorial",
   },
   band_pullups: {
     id: "band_pullups", nameEn: "Band-Assisted Pull-ups", nameHe: "מתח בעזרת גומייה",
-    type: "reps", defaultReps: 8,
+    type: "reps", defaultReps: 8, secondsPerRep: 2,
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "band assisted pull ups tutorial",
   },
   negative_pullups: {
     id: "negative_pullups", nameEn: "Negative Pull-ups", nameHe: "מתח שלילי – ירידות איטיות",
-    type: "reps", defaultReps: 4,
+    type: "reps", defaultReps: 4, secondsPerRep: 2,
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "negative pull ups eccentric tutorial",
   },
@@ -96,7 +99,7 @@ export const EXERCISES: Record<string, Exercise> = {
   },
   dips: {
     id: "dips", nameEn: "Dips", nameHe: "שקיעות",
-    type: "reps", defaultReps: 10,
+    type: "reps", defaultReps: 10, secondsPerRep: 2,
     muscleGroups: ["triceps", "chest", "shoulders"],
     youtubeQuery: "tricep dips proper form calisthenics",
   },

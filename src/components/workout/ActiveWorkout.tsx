@@ -20,6 +20,7 @@ import {
   Zap,
   Minus,
   Plus,
+  Undo2,
 } from "lucide-react";
 
 type Phase = "exercise" | "resting" | "complete";
@@ -74,6 +75,11 @@ export default function ActiveWorkout({
   const sessionIdRef = useRef<string | null>(null);
   const advancingRef = useRef(false);
   const sessionStartRef = useRef(new Date());
+  // stepIndex → inserted session_sets row id, so revisiting a step (via the
+  // back button) UPDATES the logged reps instead of inserting a duplicate.
+  const insertedSetsRef = useRef<Record<number, string>>({});
+  // Last stepIndex announced out loud, to avoid double-speaking.
+  const announcedStepRef = useRef<number>(-1);
   const supabase = useMemo(() => createClient(), []);
 
   const currentStep = steps[stepIndex];
@@ -84,10 +90,12 @@ export default function ActiveWorkout({
   const isTimed = currentExercise?.type === "timed";
   const targetReps = currentStep?.reps ?? currentExercise?.defaultReps ?? 10;
   const exerciseDuration = currentStep?.duration ?? currentExercise?.defaultDuration ?? 30;
-  const restDuration =
+  const restDuration = Math.min(
+    45, // never rest more than 45s between exercises
     currentStep?.isLastInRound && currentStep.restBetweenRounds > 0
       ? currentStep.restBetweenRounds
-      : (currentStep?.restAfter ?? 0);
+      : (currentStep?.restAfter ?? 0)
+  );
 
   // Progressive overload: non-linear suggestion from recent rep history.
   const exerciseHistory = currentStep ? history[currentStep.exerciseId] : undefined;
@@ -105,15 +113,29 @@ export default function ActiveWorkout({
 
       const sid = sessionIdRef.current;
       if (sid) {
-        await supabase.from("session_sets").insert({
-          session_id: sid,
-          exercise_id: currentStep.exerciseId,
-          set_number: stepIndex + 1,
+        const payload = {
           reps: loggedReps ?? null,
           target_reps: !isTimed ? targetReps : null,
           duration_seconds: loggedDuration ?? null,
           weight_kg: null,
-        });
+        };
+        const existingId = insertedSetsRef.current[stepIndex];
+        if (existingId) {
+          // Revisited via the back button — correct the existing row.
+          await supabase.from("session_sets").update(payload).eq("id", existingId);
+        } else {
+          const { data } = await supabase
+            .from("session_sets")
+            .insert({
+              session_id: sid,
+              exercise_id: currentStep.exerciseId,
+              set_number: stepIndex + 1,
+              ...payload,
+            })
+            .select("id")
+            .single();
+          if (data) insertedSetsRef.current[stepIndex] = data.id;
+        }
       }
 
       if (stepIndex >= steps.length - 1) {
@@ -165,10 +187,32 @@ export default function ActiveWorkout({
   // Auto mode countdown for reps exercises (≈ secondsPerRep × reps)
   const repCountdown = useTimer(advanceReps);
 
-  // Auto-start rest timer
+  // Announce a step out loud (auto mode). Called during the preceding rest so
+  // Roi hears what's next before it starts, not at the moment it begins.
+  const announceStep = useCallback(
+    (idx: number) => {
+      if (!autoMode || announcedStepRef.current === idx) return;
+      const s = steps[idx];
+      const ex = s ? EXERCISES[s.exerciseId] : null;
+      if (!ex) return;
+      announcedStepRef.current = idx;
+      if (ex.type === "timed") {
+        const dur = s.duration ?? ex.defaultDuration ?? 30;
+        speak(`${ex.nameHe}, ${dur} שניות`);
+      } else {
+        const tgt = s.reps ?? ex.defaultReps ?? 10;
+        const reps = suggestNextReps(history[s.exerciseId] ?? [], tgt, ex.perSide ?? false);
+        speak(`${ex.nameHe}, ${reps} חזרות`);
+      }
+    },
+    [autoMode, steps, history]
+  );
+
+  // Auto-start rest timer + announce the upcoming exercise during the rest.
   useEffect(() => {
     if (phase === "resting" && restDuration > 0) {
       restTimer.start(restDuration);
+      announceStep(stepIndex + 1);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase]);
@@ -206,20 +250,17 @@ export default function ActiveWorkout({
   // Paused while the adjust dialog is open so a manual log isn't cut off.
   useEffect(() => {
     if (autoMode && phase === "exercise" && !isTimed && !showRepDialog && currentStep) {
-      repCountdown.start(Math.max(1, Math.round(suggestedReps * secondsPerRep)));
+      const tempo = currentExercise?.secondsPerRep ?? secondsPerRep;
+      repCountdown.start(Math.max(1, Math.round(suggestedReps * tempo)));
     }
     return () => repCountdown.pause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode, phase, isTimed, showRepDialog, stepIndex, secondsPerRep]);
 
-  // Auto mode: announce the exercise name + reps/duration out loud before it
-  // starts, so Roi doesn't have to look at the screen mid-workout.
+  // Announce the current exercise on entry only if it wasn't already announced
+  // during a preceding rest (e.g. the very first exercise, or no-rest steps).
   useEffect(() => {
-    if (!autoMode || phase !== "exercise" || !currentExercise) return;
-    const detail = isTimed
-      ? `${exerciseDuration} שניות`
-      : `${suggestedReps} חזרות`;
-    speak(`${currentExercise.nameHe}, ${detail}`);
+    if (autoMode && phase === "exercise") announceStep(stepIndex);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode, phase, stepIndex]);
 
@@ -299,6 +340,40 @@ export default function ActiveWorkout({
     setStepIndex((i) => i + 1);
   };
 
+  // Drop the most recent recorded reps for an exercise (used when going back
+  // to re-log a set we already auto-logged).
+  const unrecordLast = (exerciseId: string) => {
+    setHistory((prev) => {
+      const list = prev[exerciseId];
+      if (!list?.length) return prev;
+      return { ...prev, [exerciseId]: list.slice(1) };
+    });
+  };
+
+  // Go back to the previous exercise to correct its actual rep count, even
+  // after the workout auto-advanced. The re-logged reps UPDATE the same DB row.
+  const handleBack = () => {
+    restTimer.pause();
+    exerciseTimer.pause();
+    repCountdown.pause();
+    advancingRef.current = false;
+    announcedStepRef.current = -1;
+    setShowRepDialog(false);
+
+    if (phase === "resting") {
+      // Return to the exercise we just finished (rest keeps the same index).
+      if (currentStep) unrecordLast(currentStep.exerciseId);
+      setPhase("exercise");
+      setTimerStarted(false);
+    } else if (stepIndex > 0) {
+      const prev = steps[stepIndex - 1];
+      if (prev) unrecordLast(prev.exerciseId);
+      setStepIndex((i) => i - 1);
+      setPhase("exercise");
+      setTimerStarted(false);
+    }
+  };
+
   const handlePauseResume = () => {
     if (phase === "resting") {
       restTimer.running ? restTimer.pause() : restTimer.resume();
@@ -343,6 +418,10 @@ export default function ActiveWorkout({
           </div>
         )}
         <div className="flex gap-4">
+          <Button variant="outline" size="lg" onClick={handleBack}>
+            <Undo2 className="w-6 h-6" />
+            <span className="mr-2">חזור</span>
+          </Button>
           <Button variant="outline" size="lg" onClick={handlePauseResume}>
             {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
             <span className="mr-2">{isPaused ? "המשך" : "הפסק"}</span>
@@ -471,6 +550,11 @@ export default function ActiveWorkout({
 
         {/* Bottom controls */}
         <div className="flex gap-4 mt-8">
+          {stepIndex > 0 && (
+            <Button variant="outline" size="lg" onClick={handleBack} aria-label="חזור אחורה">
+              <Undo2 className="w-5 h-5" />
+            </Button>
+          )}
           {(phase === "exercise" && isTimed && timerStarted) && (
             <Button variant="outline" size="lg" onClick={handlePauseResume}>
               {isPaused ? <Play className="w-6 h-6" /> : <Pause className="w-6 h-6" />}
