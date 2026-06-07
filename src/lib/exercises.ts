@@ -10,6 +10,9 @@ export interface Exercise {
   defaultWeight?: number;
   muscleGroups: string[];
   youtubeQuery: string;
+  // Per-side / asymmetric moves (e.g. lunges): target reps must be even so
+  // both sides get equal work. The app rounds suggestions to the nearest even.
+  perSide?: boolean;
 }
 
 export const EXERCISES: Record<string, Exercise> = {
@@ -73,6 +76,18 @@ export const EXERCISES: Record<string, Exercise> = {
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "trx inverted row tutorial",
   },
+  trx_bicep_curls: {
+    id: "trx_bicep_curls", nameEn: "TRX Bicep Curls", nameHe: "כפיפת מרפק TRX (יד קדמית)",
+    type: "reps", defaultReps: 12,
+    muscleGroups: ["biceps"],
+    youtubeQuery: "trx bicep curl proper form tutorial",
+  },
+  trx_tricep_extension: {
+    id: "trx_tricep_extension", nameEn: "TRX Tricep Extension", nameHe: "פשיטת מרפק TRX (יד אחורית)",
+    type: "reps", defaultReps: 12,
+    muscleGroups: ["triceps"],
+    youtubeQuery: "trx tricep extension proper form tutorial",
+  },
   inverted_rows: {
     id: "inverted_rows", nameEn: "Inverted Rows", nameHe: "משיכות הפוכות",
     type: "reps", defaultReps: 12,
@@ -99,15 +114,27 @@ export const EXERCISES: Record<string, Exercise> = {
   },
   lunges: {
     id: "lunges", nameEn: "Lunges", nameHe: "לאנג'ס",
-    type: "reps", defaultReps: 12,
+    type: "reps", defaultReps: 12, perSide: true,
     muscleGroups: ["quads", "glutes", "hamstrings"],
     youtubeQuery: "lunges proper form tutorial",
   },
   reverse_lunges: {
     id: "reverse_lunges", nameEn: "Reverse Lunges", nameHe: "לאנג'ס לאחור",
-    type: "reps", defaultReps: 12,
+    type: "reps", defaultReps: 12, perSide: true,
     muscleGroups: ["quads", "glutes"],
     youtubeQuery: "reverse lunges tutorial proper form",
+  },
+  bulgarian_split_squat: {
+    id: "bulgarian_split_squat", nameEn: "Bulgarian Split Squat", nameHe: "סקוואט בולגרי",
+    type: "reps", defaultReps: 10, perSide: true,
+    muscleGroups: ["glutes", "quads", "hamstrings"],
+    youtubeQuery: "bulgarian split squat proper form tutorial",
+  },
+  hip_thrusts: {
+    id: "hip_thrusts", nameEn: "Hip Thrusts", nameHe: "הרמות אגן (היפ ת'ראסט)",
+    type: "reps", defaultReps: 15,
+    muscleGroups: ["glutes", "hamstrings"],
+    youtubeQuery: "bodyweight hip thrust glutes tutorial",
   },
   glute_bridges: {
     id: "glute_bridges", nameEn: "Glute Bridges", nameHe: "גשר ישבן",
@@ -150,6 +177,12 @@ export const EXERCISES: Record<string, Exercise> = {
     type: "timed", defaultDuration: 30,
     muscleGroups: ["core", "cardio"],
     youtubeQuery: "mountain climbers exercise tutorial",
+  },
+  jump_rope: {
+    id: "jump_rope", nameEn: "Jump Rope", nameHe: "קפיצה בדלגית",
+    type: "timed", defaultDuration: 60,
+    muscleGroups: ["cardio", "calves", "shoulders"],
+    youtubeQuery: "jump rope basics warm up tutorial",
   },
   burpees: {
     id: "burpees", nameEn: "Burpees", nameHe: "ברפי",

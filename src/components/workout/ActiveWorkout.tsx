@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useTimer } from "./useTimer";
 import { EXERCISES } from "@/lib/exercises";
 import { WORKOUT_TEMPLATES, flattenWorkoutSteps } from "@/lib/workouts";
+import { suggestNextReps } from "@/lib/progression";
 import { formatTime, cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import ExerciseAnimation from "./ExerciseAnimation";
@@ -17,9 +18,28 @@ import {
   PlayCircle,
   SlidersHorizontal,
   Zap,
+  Minus,
+  Plus,
 } from "lucide-react";
 
 type Phase = "exercise" | "resting" | "complete";
+
+// Speak a line out loud (auto mode only). Hebrew voice when the device has one.
+function speak(text: string) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+  try {
+    const synth = window.speechSynthesis;
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = "he-IL";
+    utter.rate = 1;
+    const heVoice = synth.getVoices().find((v) => v.lang?.toLowerCase().startsWith("he"));
+    if (heVoice) utter.voice = heVoice;
+    synth.cancel(); // drop any queued announcement so we don't pile up
+    synth.speak(utter);
+  } catch {
+    /* speech is best-effort; never break the workout */
+  }
+}
 
 export default function ActiveWorkout({
   workoutId,
@@ -47,8 +67,9 @@ export default function ActiveWorkout({
   const [showRepDialog, setShowRepDialog] = useState(false);
   const [actualReps, setActualReps] = useState(0);
 
-  // Last time performance: exerciseId → most recent actual reps
-  const [lastPerformance, setLastPerformance] = useState<Record<string, number>>({});
+  // Per-exercise rep history (most recent first), incl. this session's logs.
+  // Drives the non-linear progression suggestion in @/lib/progression.
+  const [history, setHistory] = useState<Record<string, number[]>>({});
 
   const sessionIdRef = useRef<string | null>(null);
   const advancingRef = useRef(false);
@@ -68,14 +89,14 @@ export default function ActiveWorkout({
       ? currentStep.restBetweenRounds
       : (currentStep?.restAfter ?? 0);
 
-  // Progressive overload: if hit target last time, add 1
-  const lastReps = currentStep ? lastPerformance[currentStep.exerciseId] : undefined;
-  const suggestedReps =
-    lastReps !== undefined
-      ? lastReps >= targetReps
-        ? lastReps + 1
-        : targetReps
-      : targetReps;
+  // Progressive overload: non-linear suggestion from recent rep history.
+  const exerciseHistory = currentStep ? history[currentStep.exerciseId] : undefined;
+  const lastReps = exerciseHistory?.[0];
+  const suggestedReps = suggestNextReps(
+    exerciseHistory ?? [],
+    targetReps,
+    currentExercise?.perSide ?? false
+  );
 
   const doAdvance = useCallback(
     async (loggedReps?: number, loggedDuration?: number) => {
@@ -127,13 +148,19 @@ export default function ActiveWorkout({
     }, [])
   );
 
+  // Record an actual rep count for an exercise (most recent first).
+  const recordReps = useCallback((exerciseId: string, reps: number) => {
+    setHistory((prev) => ({
+      ...prev,
+      [exerciseId]: [reps, ...(prev[exerciseId] ?? [])].slice(0, 10),
+    }));
+  }, []);
+
   // Advance a reps exercise, logging the suggested reps as performed.
   const advanceReps = useCallback(() => {
-    if (currentStep) {
-      setLastPerformance((prev) => ({ ...prev, [currentStep.exerciseId]: suggestedReps }));
-    }
+    if (currentStep) recordReps(currentStep.exerciseId, suggestedReps);
     doAdvance(suggestedReps);
-  }, [currentStep, suggestedReps, doAdvance]);
+  }, [currentStep, suggestedReps, doAdvance, recordReps]);
 
   // Auto mode countdown for reps exercises (≈ secondsPerRep × reps)
   const repCountdown = useTimer(advanceReps);
@@ -185,6 +212,17 @@ export default function ActiveWorkout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoMode, phase, isTimed, showRepDialog, stepIndex, secondsPerRep]);
 
+  // Auto mode: announce the exercise name + reps/duration out loud before it
+  // starts, so Roi doesn't have to look at the screen mid-workout.
+  useEffect(() => {
+    if (!autoMode || phase !== "exercise" || !currentExercise) return;
+    const detail = isTimed
+      ? `${exerciseDuration} שניות`
+      : `${suggestedReps} חזרות`;
+    speak(`${currentExercise.nameHe}, ${detail}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoMode, phase, stepIndex]);
+
   // Init session + load last performance
   useEffect(() => {
     supabase
@@ -201,7 +239,8 @@ export default function ActiveWorkout({
         if (data) sessionIdRef.current = data.id;
       });
 
-    // Fetch most recent reps per exercise (RLS filters to this user)
+    // Fetch recent rep history per exercise, most recent first (RLS filters
+    // to this user). Keep up to 10 per exercise for the progression average.
     supabase
       .from("session_sets")
       .select("exercise_id, reps")
@@ -209,13 +248,14 @@ export default function ActiveWorkout({
       .order("completed_at", { ascending: false })
       .then(({ data }) => {
         if (!data) return;
-        const map: Record<string, number> = {};
+        const map: Record<string, number[]> = {};
         for (const row of data) {
-          if (row.exercise_id && row.reps !== null && !(row.exercise_id in map)) {
-            map[row.exercise_id] = row.reps;
+          if (row.exercise_id && row.reps !== null) {
+            const list = map[row.exercise_id] ?? (map[row.exercise_id] = []);
+            if (list.length < 10) list.push(row.reps);
           }
         }
-        setLastPerformance(map);
+        setHistory(map);
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -247,10 +287,8 @@ export default function ActiveWorkout({
 
   const handleConfirmReps = () => {
     setShowRepDialog(false);
-    // Update local last performance optimistically
-    if (currentStep) {
-      setLastPerformance((prev) => ({ ...prev, [currentStep.exerciseId]: actualReps }));
-    }
+    // Record what was actually performed so the next suggestion adapts.
+    if (currentStep) recordReps(currentStep.exerciseId, actualReps);
     doAdvance(actualReps);
   };
 
@@ -475,8 +513,29 @@ export default function ActiveWorkout({
               </p>
             )}
 
-            <div className="text-6xl font-bold text-center text-primary py-2">
-              {actualReps}
+            {/* Big +/- steppers — easy to hit with sweaty hands */}
+            <div className="flex items-center justify-center gap-6 py-2">
+              <Button
+                variant="outline"
+                size="xl"
+                className="w-16 h-16 rounded-full p-0 text-3xl"
+                aria-label="פחות חזרה"
+                onClick={() => setActualReps((r) => Math.max(0, r - 1))}
+              >
+                <Minus className="w-8 h-8" />
+              </Button>
+              <div className="text-6xl font-bold text-center text-primary w-24">
+                {actualReps}
+              </div>
+              <Button
+                variant="outline"
+                size="xl"
+                className="w-16 h-16 rounded-full p-0 text-3xl"
+                aria-label="עוד חזרה"
+                onClick={() => setActualReps((r) => r + 1)}
+              >
+                <Plus className="w-8 h-8" />
+              </Button>
             </div>
 
             <input

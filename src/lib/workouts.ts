@@ -46,6 +46,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         rounds: 1,
         restBetweenRounds: 0,
         steps: [
+          { exerciseId: "jump_rope", sets: 1, duration: 60, restAfter: 15 },
           { exerciseId: "mountain_climbers", sets: 1, duration: 30, restAfter: 15 },
           { exerciseId: "plank", sets: 1, duration: 20, restAfter: 15 },
           { exerciseId: "pushups", sets: 1, reps: 8, restAfter: 20 },
@@ -87,8 +88,19 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
       },
       {
         type: "superset",
-        nameHe: "סופרסט 3 – רגליים",
-        nameEn: "Superset 3 – Legs",
+        nameHe: "סופרסט 3 – זרועות (TRX)",
+        nameEn: "Superset 3 – Arms (TRX)",
+        rounds: 3,
+        restBetweenRounds: 30,
+        steps: [
+          { exerciseId: "trx_bicep_curls", sets: 1, reps: 12, restAfter: 10, note: "יד קדמית" },
+          { exerciseId: "trx_tricep_extension", sets: 1, reps: 12, restAfter: 0, note: "יד אחורית" },
+        ],
+      },
+      {
+        type: "superset",
+        nameHe: "סופרסט 4 – רגליים",
+        nameEn: "Superset 4 – Legs",
         rounds: 3,
         restBetweenRounds: 30,
         steps: [
@@ -126,6 +138,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         rounds: 1,
         restBetweenRounds: 0,
         steps: [
+          { exerciseId: "jump_rope", sets: 1, duration: 60, restAfter: 15 },
           { exerciseId: "mountain_climbers", sets: 1, duration: 30, restAfter: 15 },
           { exerciseId: "glute_bridges", sets: 1, reps: 15, restAfter: 15 },
           { exerciseId: "squats", sets: 1, reps: 10, restAfter: 20 },
@@ -149,6 +162,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         rounds: 3,
         restBetweenRounds: 30,
         steps: [
+          { exerciseId: "hip_thrusts", sets: 1, reps: 15, restAfter: 10 },
           { exerciseId: "glute_bridges", sets: 1, reps: 20, restAfter: 10 },
           { exerciseId: "superman", sets: 1, duration: 20, restAfter: 0 },
         ],
@@ -194,6 +208,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         rounds: 1,
         restBetweenRounds: 0,
         steps: [
+          { exerciseId: "jump_rope", sets: 1, duration: 60, restAfter: 15 },
           { exerciseId: "mountain_climbers", sets: 1, duration: 30, restAfter: 15 },
           { exerciseId: "pushups", sets: 1, reps: 8, restAfter: 15 },
           { exerciseId: "squats", sets: 1, reps: 10, restAfter: 20 },
