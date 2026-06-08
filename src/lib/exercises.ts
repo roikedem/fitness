@@ -13,63 +13,64 @@ export interface Exercise {
   // Per-side / asymmetric moves (e.g. lunges): target reps must be even so
   // both sides get equal work. The app rounds suggestions to the nearest even.
   perSide?: boolean;
-  // Auto-mode tempo: seconds counted per rep before auto-advancing. Slow
-  // strength moves (pull-ups, dips) want 2s/rep; most moves use the default 1.
+  // Auto-mode tempo: seconds counted per rep before auto-advancing. Push-ups
+  // run fast at 1s/rep; everything else uses the 2.5s/rep default (set in the
+  // workout component).
   secondsPerRep?: number;
 }
 
 export const EXERCISES: Record<string, Exercise> = {
   pushups: {
     id: "pushups", nameEn: "Push-ups", nameHe: "שכיבות סמיכה",
-    type: "reps", defaultReps: 15,
+    type: "reps", defaultReps: 16, secondsPerRep: 1,
     muscleGroups: ["chest", "triceps", "shoulders"],
     youtubeQuery: "push ups proper form tutorial",
   },
   wide_pushups: {
     id: "wide_pushups", nameEn: "Wide Push-ups", nameHe: "שכיבות סמיכה רחבות",
-    type: "reps", defaultReps: 12,
+    type: "reps", defaultReps: 14, secondsPerRep: 1,
     muscleGroups: ["chest", "triceps", "shoulders"],
     youtubeQuery: "wide grip push ups tutorial",
   },
   diamond_pushups: {
     id: "diamond_pushups", nameEn: "Diamond Push-ups", nameHe: "שכיבות סמיכה יהלום",
-    type: "reps", defaultReps: 10,
+    type: "reps", defaultReps: 12, secondsPerRep: 1,
     muscleGroups: ["triceps", "chest"],
     youtubeQuery: "diamond push ups triceps tutorial",
   },
   pike_pushups: {
     id: "pike_pushups", nameEn: "Pike Push-ups", nameHe: "שכיבות סמיכה פייק",
-    type: "reps", defaultReps: 10,
+    type: "reps", defaultReps: 12, secondsPerRep: 1,
     muscleGroups: ["shoulders", "triceps"],
     youtubeQuery: "pike push ups shoulders tutorial",
   },
   decline_pushups: {
     id: "decline_pushups", nameEn: "Decline Push-ups", nameHe: "שכיבות סמיכה בירידה",
-    type: "reps", defaultReps: 12,
+    type: "reps", defaultReps: 14, secondsPerRep: 1,
     muscleGroups: ["upper chest", "shoulders"],
     youtubeQuery: "decline push ups upper chest tutorial",
   },
   pullups: {
     id: "pullups", nameEn: "Pull-ups", nameHe: "מתח",
-    type: "reps", defaultReps: 6, secondsPerRep: 2,
+    type: "reps", defaultReps: 6,
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "pull ups proper form beginners",
   },
   chinups: {
     id: "chinups", nameEn: "Chin-ups", nameHe: "מתח אנדרגריפ",
-    type: "reps", defaultReps: 6, secondsPerRep: 2,
+    type: "reps", defaultReps: 6,
     muscleGroups: ["biceps", "back"],
     youtubeQuery: "chin ups underhand grip tutorial",
   },
   band_pullups: {
     id: "band_pullups", nameEn: "Band-Assisted Pull-ups", nameHe: "מתח בעזרת גומייה",
-    type: "reps", defaultReps: 8, secondsPerRep: 2,
+    type: "reps", defaultReps: 8,
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "band assisted pull ups tutorial",
   },
   negative_pullups: {
     id: "negative_pullups", nameEn: "Negative Pull-ups", nameHe: "מתח שלילי – ירידות איטיות",
-    type: "reps", defaultReps: 4, secondsPerRep: 2,
+    type: "reps", defaultReps: 4,
     muscleGroups: ["back", "biceps"],
     youtubeQuery: "negative pull ups eccentric tutorial",
   },
@@ -99,7 +100,7 @@ export const EXERCISES: Record<string, Exercise> = {
   },
   dips: {
     id: "dips", nameEn: "Dips", nameHe: "שקיעות",
-    type: "reps", defaultReps: 10, secondsPerRep: 2,
+    type: "reps", defaultReps: 10,
     muscleGroups: ["triceps", "chest", "shoulders"],
     youtubeQuery: "tricep dips proper form calisthenics",
   },

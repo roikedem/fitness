@@ -61,8 +61,9 @@ export default function ActiveWorkout({
   // Auto mode: auto-start timed exercises, and auto-advance reps after a
   // per-rep countdown (rest already auto-advances).
   const [autoMode, setAutoMode] = useState(false);
-  // Seconds counted per rep before auto-advancing. Configurable (future UI).
-  const [secondsPerRep, setSecondsPerRep] = useState(1);
+  // Default seconds counted per rep before auto-advancing. Push-ups override
+  // this to 1s via the exercise's own secondsPerRep; everything else is 2.5s.
+  const [secondsPerRep, setSecondsPerRep] = useState(2.5);
 
   // Rep confirmation dialog
   const [showRepDialog, setShowRepDialog] = useState(false);

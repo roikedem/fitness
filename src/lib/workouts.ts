@@ -117,6 +117,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         steps: [
           { exerciseId: "plank", sets: 1, duration: 60, restAfter: 10 },
           { exerciseId: "hollow_body", sets: 1, duration: 30, restAfter: 10 },
+          { exerciseId: "superman", sets: 1, duration: 20, restAfter: 10 },
           { exerciseId: "leg_raises", sets: 1, reps: 15, restAfter: 0 },
         ],
       },
@@ -253,6 +254,84 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         nameEn: "Core Finisher",
         rounds: 2,
         restBetweenRounds: 20,
+        steps: [
+          { exerciseId: "plank", sets: 1, duration: 60, restAfter: 10 },
+          { exerciseId: "hollow_body", sets: 1, duration: 30, restAfter: 0 },
+        ],
+      },
+    ],
+  },
+  {
+    id: "push_arms_d",
+    nameHe: "דחיפה + זרועות D",
+    nameEn: "Push & Arms D",
+    descriptionHe: "יום דחיפה עם דגש על חזה וזרועות (יד קדמית + אחורית)",
+    durationMinutes: 45,
+    level: "intermediate",
+    focus: "chest, biceps, triceps, shoulders",
+    blocks: [
+      {
+        type: "warmup",
+        nameHe: "חימום",
+        nameEn: "Warm-up",
+        rounds: 1,
+        restBetweenRounds: 0,
+        steps: [
+          { exerciseId: "jump_rope", sets: 1, duration: 60, restAfter: 15 },
+          { exerciseId: "mountain_climbers", sets: 1, duration: 30, restAfter: 15 },
+          { exerciseId: "pushups", sets: 1, reps: 8, restAfter: 20 },
+        ],
+      },
+      {
+        type: "superset",
+        nameHe: "סופרסט 1 – חזה",
+        nameEn: "Superset 1 – Chest",
+        rounds: 3,
+        restBetweenRounds: 40,
+        steps: [
+          { exerciseId: "pushups", sets: 1, reps: 16, restAfter: 10 },
+          { exerciseId: "wide_pushups", sets: 1, reps: 14, restAfter: 0 },
+        ],
+      },
+      {
+        type: "superset",
+        nameHe: "סופרסט 2 – חזה עליון / טריספס",
+        nameEn: "Superset 2 – Upper Chest / Triceps",
+        rounds: 3,
+        restBetweenRounds: 40,
+        steps: [
+          { exerciseId: "decline_pushups", sets: 1, reps: 14, restAfter: 10 },
+          { exerciseId: "dips", sets: 1, reps: 10, restAfter: 0 },
+        ],
+      },
+      {
+        type: "superset",
+        nameHe: "סופרסט 3 – זרועות (TRX)",
+        nameEn: "Superset 3 – Arms (TRX)",
+        rounds: 3,
+        restBetweenRounds: 30,
+        steps: [
+          { exerciseId: "trx_bicep_curls", sets: 1, reps: 12, restAfter: 10, note: "יד קדמית" },
+          { exerciseId: "trx_tricep_extension", sets: 1, reps: 12, restAfter: 0, note: "יד אחורית" },
+        ],
+      },
+      {
+        type: "superset",
+        nameHe: "סופרסט 4 – כתפיים / יד קדמית",
+        nameEn: "Superset 4 – Shoulders / Biceps",
+        rounds: 3,
+        restBetweenRounds: 30,
+        steps: [
+          { exerciseId: "pike_pushups", sets: 1, reps: 12, restAfter: 10 },
+          { exerciseId: "chinups", sets: 1, reps: 6, restAfter: 0, note: "אנדרגריפ – יד קדמית" },
+        ],
+      },
+      {
+        type: "circuit",
+        nameHe: "פינישר קור",
+        nameEn: "Core Finisher",
+        rounds: 2,
+        restBetweenRounds: 30,
         steps: [
           { exerciseId: "plank", sets: 1, duration: 60, restAfter: 10 },
           { exerciseId: "hollow_body", sets: 1, duration: 30, restAfter: 0 },
