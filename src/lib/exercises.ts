@@ -104,6 +104,12 @@ export const EXERCISES: Record<string, Exercise> = {
     muscleGroups: ["triceps", "chest", "shoulders"],
     youtubeQuery: "tricep dips proper form calisthenics",
   },
+  bench_dips: {
+    id: "bench_dips", nameEn: "Bench Dips", nameHe: "שקיעות על כיסא",
+    type: "reps", defaultReps: 12,
+    muscleGroups: ["triceps", "chest", "shoulders"],
+    youtubeQuery: "bench dips triceps chair tutorial",
+  },
   squats: {
     id: "squats", nameEn: "Squats", nameHe: "סקוואט",
     type: "reps", defaultReps: 20, secondsPerRep: 1,

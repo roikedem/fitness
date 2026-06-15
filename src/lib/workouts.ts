@@ -83,7 +83,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         restBetweenRounds: 35,
         steps: [
           { exerciseId: "pike_pushups", sets: 1, reps: 10, restAfter: 5 },
-          { exerciseId: "dips", sets: 1, reps: 10, restAfter: 0 },
+          { exerciseId: "bench_dips", sets: 1, reps: 12, restAfter: 0, note: "שקיעות על כיסא/ספסל – קל יותר משקיעות מלאות" },
         ],
       },
       {
@@ -301,7 +301,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         restBetweenRounds: 35,
         steps: [
           { exerciseId: "decline_pushups", sets: 1, reps: 14, restAfter: 5 },
-          { exerciseId: "dips", sets: 1, reps: 10, restAfter: 0 },
+          { exerciseId: "bench_dips", sets: 1, reps: 12, restAfter: 0, note: "שקיעות על כיסא/ספסל – קל יותר משקיעות מלאות" },
         ],
       },
       {
