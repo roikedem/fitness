@@ -377,6 +377,35 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
   },
 ];
 
+// ── Weekly schedule ─────────────────────────────────────────────────────────
+// THE single source of truth for which workout runs on each weekday. Both this
+// app AND the Coach's daily email must follow this fixed order — never a
+// "next after last completed" heuristic (that drifts off the plan). Indexed by
+// JS getDay(): 0=Sunday … 6=Saturday. templateId null = no app workout
+// (Friday = Roi's own gym session, Saturday = rest).
+export interface ScheduledDay {
+  templateId: string | null;
+  labelHe: string;
+}
+
+export const WEEKDAY_NAMES_HE = ["ראשון", "שני", "שלישי", "רביעי", "חמישי", "שישי", "שבת"];
+
+export const WEEKLY_SCHEDULE: ScheduledDay[] = [
+  { templateId: "upper_a", labelHe: "אימון עליון A" },         // Sunday
+  { templateId: "lower_b", labelHe: "אימון תחתון B" },         // Monday
+  { templateId: "push_arms_d", labelHe: "דחיפה + זרועות D" },  // Tuesday
+  { templateId: "full_body_c", labelHe: "אימון כל הגוף C" },   // Wednesday
+  { templateId: "upper_a", labelHe: "אימון עליון A" },         // Thursday
+  { templateId: null, labelHe: "חדר כושר (אימון עצמאי)" },     // Friday
+  { templateId: null, labelHe: "מנוחה" },                       // Saturday
+];
+
+// Day-of-week (0–6) in Israel time, robust to the server running in UTC.
+export function israelWeekday(): number {
+  const israel = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Jerusalem" }));
+  return israel.getDay();
+}
+
 export function flattenWorkoutSteps(template: WorkoutTemplate) {
   const steps: Array<{
     blockIndex: number;

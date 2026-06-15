@@ -1,17 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
-import { WORKOUT_TEMPLATES } from "@/lib/workouts";
+import { WORKOUT_TEMPLATES, WEEKLY_SCHEDULE, WEEKDAY_NAMES_HE, israelWeekday } from "@/lib/workouts";
 import Link from "next/link";
 import { Card } from "@/components/ui/card";
 import LogoutButton from "@/components/LogoutButton";
 import { Clock, ChevronLeft, CheckCircle2 } from "lucide-react";
 
-const ROTATION = ["upper_a", "lower_b", "full_body_c"];
-
 export default async function CalendarPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Last completed session
+  // Last completed session (to mark "done today")
   const { data: lastSession } = await supabase
     .from("workout_sessions")
     .select("workout_id, started_at, completed_at")
@@ -26,16 +24,19 @@ export default async function CalendarPage() {
     lastSession &&
     new Date(lastSession.started_at).toLocaleDateString("sv") === todayStr;
 
-  // Determine recommended workout
-  const lastIdx = lastSession ? ROTATION.indexOf(lastSession.workout_id) : -1;
-  const nextIdx = (lastIdx + 1) % ROTATION.length;
-  const recommendedId = ROTATION[nextIdx];
-  const recommended = WORKOUT_TEMPLATES.find((w) => w.id === recommendedId) ?? WORKOUT_TEMPLATES[0];
+  // Today's workout is fixed by the WEEKLY SCHEDULE (day of week), not a
+  // rotation — so the app, the email, and plan.md always agree.
+  const dow = israelWeekday();
+  const todaySchedule = WEEKLY_SCHEDULE[dow];
+  const recommended = todaySchedule.templateId
+    ? WORKOUT_TEMPLATES.find((w) => w.id === todaySchedule.templateId) ?? null
+    : null;
 
   const todayHe = new Date().toLocaleDateString("he-IL", {
     weekday: "long",
     day: "numeric",
     month: "long",
+    timeZone: "Asia/Jerusalem",
   });
 
   return (
@@ -48,7 +49,16 @@ export default async function CalendarPage() {
         <LogoutButton />
       </div>
 
-      {workedOutToday ? (
+      {!recommended ? (
+        <Card className="mb-6 border-border bg-card">
+          <div className="flex items-center gap-3">
+            <div>
+              <p className="font-semibold text-lg">{todaySchedule.labelHe}</p>
+              <p className="text-muted-foreground text-sm">אין אימון קליסטניקס היום</p>
+            </div>
+          </div>
+        </Card>
+      ) : workedOutToday ? (
         <Card className="mb-6 border-accent/40 bg-accent/10">
           <div className="flex items-center gap-3">
             <CheckCircle2 className="w-8 h-8 text-accent shrink-0" />
@@ -80,7 +90,7 @@ export default async function CalendarPage() {
         </section>
       )}
 
-      {/* Rotation preview */}
+      {/* Weekly schedule (fixed by day of week) */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">תכנית שבועית</h2>
@@ -89,30 +99,39 @@ export default async function CalendarPage() {
           </Link>
         </div>
         <div className="space-y-2">
-          {ROTATION.map((id, i) => {
-            const w = WORKOUT_TEMPLATES.find((t) => t.id === id);
-            if (!w) return null;
-            const isNext = id === recommendedId;
-            return (
+          {WEEKLY_SCHEDULE.map((sched, i) => {
+            const w = sched.templateId
+              ? WORKOUT_TEMPLATES.find((t) => t.id === sched.templateId)
+              : null;
+            const isToday = i === dow;
+            const row = (
               <div
-                key={id}
                 className={`flex items-center justify-between rounded-xl px-4 py-3 border ${
-                  isNext ? "border-primary bg-primary/10" : "border-border bg-card"
+                  isToday ? "border-primary bg-primary/10" : "border-border bg-card"
                 }`}
               >
                 <div className="flex items-center gap-3">
-                  <span className="text-muted-foreground text-sm w-4">{i + 1}</span>
+                  <span className="text-muted-foreground text-sm w-10">{WEEKDAY_NAMES_HE[i]}</span>
                   <div>
-                    <p className="font-medium">{w.nameHe}</p>
-                    <p className="text-muted-foreground text-xs">{w.focus}</p>
+                    <p className={`font-medium ${w ? "" : "text-muted-foreground"}`}>
+                      {w ? w.nameHe : sched.labelHe}
+                    </p>
+                    {w && <p className="text-muted-foreground text-xs">{w.focus}</p>}
                   </div>
                 </div>
-                {isNext && (
+                {isToday && (
                   <span className="text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full">
-                    הבא
+                    היום
                   </span>
                 )}
               </div>
+            );
+            return w ? (
+              <Link key={i} href={`/workout/${w.id}`} className="block">
+                {row}
+              </Link>
+            ) : (
+              <div key={i}>{row}</div>
             );
           })}
         </div>
