@@ -382,7 +382,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
 // app AND the Coach's daily email must follow this fixed order — never a
 // "next after last completed" heuristic (that drifts off the plan). Indexed by
 // JS getDay(): 0=Sunday … 6=Saturday. templateId null = no app workout
-// (Friday = Roi's own gym session, Saturday = rest).
+// (Saturday = rest). Gym is Roi's discretion, once/week — not a fixed weekday.
 export interface ScheduledDay {
   templateId: string | null;
   labelHe: string;
@@ -396,7 +396,7 @@ export const WEEKLY_SCHEDULE: ScheduledDay[] = [
   { templateId: "push_arms_d", labelHe: "דחיפה + זרועות D" },  // Tuesday
   { templateId: "full_body_c", labelHe: "אימון כל הגוף C" },   // Wednesday
   { templateId: "upper_a", labelHe: "אימון עליון A" },         // Thursday
-  { templateId: null, labelHe: "חדר כושר (אימון עצמי)" },       // Friday = gym day (Roi 2026-06-25 22:04 — keep gym on Fridays, not app-driven)
+  { templateId: "lower_b", labelHe: "אימון תחתון B" },         // Friday = app workout (Roi 2026-06-25 22:44 — gym is once/week at his discretion, NOT a fixed Friday; Fri done as park calisthenics)
   { templateId: null, labelHe: "מנוחה" },                       // Saturday
 ];
 
