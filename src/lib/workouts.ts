@@ -396,7 +396,7 @@ export const WEEKLY_SCHEDULE: ScheduledDay[] = [
   { templateId: "push_arms_d", labelHe: "דחיפה + זרועות D" },  // Tuesday
   { templateId: "full_body_c", labelHe: "אימון כל הגוף C" },   // Wednesday
   { templateId: "upper_a", labelHe: "אימון עליון A" },         // Thursday
-  { templateId: null, labelHe: "חדר כושר (אימון עצמאי)" },     // Friday
+  { templateId: "lower_b", labelHe: "אימון תחתון B" },         // Friday (app-driven; Roi 2026-06-25)
   { templateId: null, labelHe: "מנוחה" },                       // Saturday
 ];
 
