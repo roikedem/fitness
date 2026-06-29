@@ -92,6 +92,24 @@ export const EXERCISES: Record<string, Exercise> = {
     muscleGroups: ["triceps"],
     youtubeQuery: "trx tricep extension proper form tutorial",
   },
+  band_shoulder_press: {
+    id: "band_shoulder_press", nameEn: "Band Shoulder Press", nameHe: "לחיצת כתפיים עם גומייה",
+    type: "reps", defaultReps: 15,
+    muscleGroups: ["shoulders", "triceps"],
+    youtubeQuery: "resistance band shoulder press tutorial",
+  },
+  band_lateral_raise: {
+    id: "band_lateral_raise", nameEn: "Band Lateral Raise", nameHe: "הרחקת כתפיים עם גומייה",
+    type: "reps", defaultReps: 16,
+    muscleGroups: ["shoulders"],
+    youtubeQuery: "resistance band lateral raise tutorial",
+  },
+  band_bicep_curls: {
+    id: "band_bicep_curls", nameEn: "Band Bicep Curls", nameHe: "כפיפת מרפק עם גומייה (יד קדמית)",
+    type: "reps", defaultReps: 15,
+    muscleGroups: ["biceps"],
+    youtubeQuery: "resistance band bicep curl tutorial",
+  },
   inverted_rows: {
     id: "inverted_rows", nameEn: "Inverted Rows", nameHe: "משיכות הפוכות",
     type: "reps", defaultReps: 12,

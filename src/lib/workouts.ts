@@ -83,6 +83,7 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         restBetweenRounds: 35,
         steps: [
           { exerciseId: "pike_pushups", sets: 1, reps: 10, restAfter: 5 },
+          { exerciseId: "band_lateral_raise", sets: 1, reps: 16, restAfter: 5, note: "גומייה – כתף צדדית" },
           { exerciseId: "bench_dips", sets: 1, reps: 12, restAfter: 0, note: "שקיעות על כיסא/ספסל – קל יותר משקיעות מלאות" },
         ],
       },
@@ -324,6 +325,18 @@ export const WORKOUT_TEMPLATES: WorkoutTemplate[] = [
         steps: [
           { exerciseId: "pike_pushups", sets: 1, reps: 12, restAfter: 5 },
           { exerciseId: "chinups", sets: 1, reps: 6, restAfter: 0, note: "אנדרגריפ – יד קדמית" },
+        ],
+      },
+      {
+        type: "superset",
+        nameHe: "סופרסט 5 – כתפיים בגומייה + יד קדמית",
+        nameEn: "Superset 5 – Band Shoulders + Biceps",
+        rounds: 3,
+        restBetweenRounds: 25,
+        steps: [
+          { exerciseId: "band_shoulder_press", sets: 1, reps: 15, restAfter: 5, note: "גומייה" },
+          { exerciseId: "band_lateral_raise", sets: 1, reps: 16, restAfter: 5, note: "גומייה – כתף צדדית" },
+          { exerciseId: "band_bicep_curls", sets: 1, reps: 15, restAfter: 0, note: "גומייה – יד קדמית" },
         ],
       },
       {
